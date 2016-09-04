@@ -10,6 +10,31 @@ type Msg
     | Tick Time
 
 
+type alias InputFrame =
+    { interactions : List InteractableID
+    , pause : Bool
+    }
+
+
+type alias InputState =
+    { interactions : List InteractableID
+    , pause : Bool
+    , timer : Int
+    }
+
+
+type alias GameState =
+    { interactables : List Interactable
+    , paused : Bool
+    }
+
+
+type alias DrawState =
+    { interactables : List Interactable
+    , paused : Bool
+    }
+
+
 type alias InteractableID =
     String
 
@@ -37,9 +62,17 @@ type Model
 
 
 type alias GameModel =
-    { interactables : List Interactable
-    , paused : Bool
-    , timer : Int
+    { inputFrame : InputFrame
+    , inputState : InputState
+    , gameState : GameState
+    , drawState : DrawState
+    }
+
+
+newInputFrame : InputFrame
+newInputFrame =
+    { interactions = []
+    , pause = False
     }
 
 
@@ -51,16 +84,36 @@ initModel =
 initGameModel : Model
 initGameModel =
     Game
-        { interactables =
-            [ { id = "test1"
-              , isHit = False
-              , position = { x = 10, y = 20 }
-              }
-            , { id = "test2"
-              , isHit = False
-              , position = { x = 100, y = 200 }
-              }
-            ]
-        , paused = False
-        , timer = 0
+        { inputFrame = newInputFrame
+        , inputState =
+            { interactions = []
+            , pause = False
+            , timer = 0
+            }
+        , gameState =
+            { interactables =
+                [ { id = "test1"
+                  , isHit = False
+                  , position = { x = 10, y = 20 }
+                  }
+                , { id = "test2"
+                  , isHit = False
+                  , position = { x = 100, y = 200 }
+                  }
+                ]
+            , paused = False
+            }
+        , drawState =
+            { interactables =
+                [ { id = "test1"
+                  , isHit = False
+                  , position = { x = 10, y = 20 }
+                  }
+                , { id = "test2"
+                  , isHit = False
+                  , position = { x = 100, y = 200 }
+                  }
+                ]
+            , paused = False
+            }
         }

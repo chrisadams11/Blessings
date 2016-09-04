@@ -9,7 +9,7 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     case model of
         Game gameModel ->
-            every second Tick
+            every (millisecond * 30) Tick
 
         _ ->
             Sub.none
@@ -19,47 +19,101 @@ update : Msg -> Model -> ( Model, Cmd msg )
 update msg model =
     case model of
         Title ->
-            case msg of
-                TitleBegin ->
-                    ( initGameModel, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            updateTitle msg
 
         Game gameModel ->
-            case msg of
-                Click interactableID ->
-                    ( Game (interact gameModel interactableID), Cmd.none )
-
-                Space ->
-                    ( Game (pauseGame gameModel), Cmd.none )
-
-                Tick time ->
-                    if gameModel.timer < 10 then
-                        ( Game { gameModel | timer = gameModel.timer + 1 }, Cmd.none )
-                    else
-                        ( Title, Cmd.none )
-
-                _ ->
-                    ( model, Cmd.none )
+            updateGame msg gameModel
 
 
-interact : GameModel -> InteractableID -> GameModel
-interact model interactableID =
-    let
-        newInteractables =
-            map
-                (\interactable ->
-                    if interactable.id == interactableID then
-                        { interactable | isHit = True }
-                    else
-                        interactable
+updateTitle : Msg -> ( Model, Cmd msg )
+updateTitle msg =
+    case msg of
+        TitleBegin ->
+            ( initGameModel, Cmd.none )
+
+        _ ->
+            ( Title, Cmd.none )
+
+
+updateGame : Msg -> GameModel -> ( Model, Cmd msg )
+updateGame msg game =
+    case msg of
+        -- Main game loop
+        Tick time ->
+            let
+                updatedInputState =
+                    updateInputState game.inputState game.inputFrame
+
+                updatedGameState =
+                    updateGameState game.gameState updatedInputState
+
+                updatedDrawState =
+                    updateDrawState game.drawState game.gameState game.inputState
+            in
+                ( Game
+                    { game
+                        | inputFrame = newInputFrame
+                        , inputState = updatedInputState
+                        , gameState = updatedGameState
+                        , drawState = updatedDrawState
+                    }
+                , Cmd.none
                 )
-                model.interactables
+
+        -- Input messages
+        Click interactableID ->
+            ( Game { game | inputFrame = interact game.inputFrame interactableID }, Cmd.none )
+
+        Space ->
+            ( Game { game | inputFrame = pause game.inputFrame }, Cmd.none )
+
+        _ ->
+            ( Game game, Cmd.none )
+
+
+updateInputState : InputState -> InputFrame -> InputState
+updateInputState inputState inputFrame =
+    { inputState
+        | interactions = inputFrame.interactions
+        , pause = inputFrame.pause
+        , timer = inputState.timer + 1
+    }
+
+
+updateGameState : GameState -> InputState -> GameState
+updateGameState gameState inputState =
+    let
+        updatedPauseState =
+            if inputState.pause then
+                (not gameState.paused)
+            else
+                gameState.paused
+
+        updatedInteractables =
+            map
+                (\i ->
+                    if member i.id inputState.interactions then
+                        { i | isHit = True }
+                    else
+                        i
+                )
+                gameState.interactables
     in
-        { model | interactables = newInteractables }
+        { gameState | interactables = updatedInteractables, paused = updatedPauseState }
 
 
-pauseGame : GameModel -> GameModel
-pauseGame model =
-    { model | paused = True }
+updateDrawState : DrawState -> GameState -> InputState -> DrawState
+updateDrawState drawState gameState inputState =
+    { paused = gameState.paused
+    , interactables = gameState.interactables
+    }
+
+
+interact : InputFrame -> InteractableID -> InputFrame
+interact inputFrame interactableID =
+    { inputFrame | interactions = interactableID :: inputFrame.interactions }
+
+
+pause : InputFrame -> InputFrame
+pause inputFrame =
+    { inputFrame | pause = True }

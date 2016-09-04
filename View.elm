@@ -15,7 +15,7 @@ view model =
             drawTitle
 
         Game gameModel ->
-            drawGame gameModel
+            drawGame gameModel.drawState
 
 
 drawTitle : Html Msg
@@ -82,41 +82,47 @@ divFloatWrapper elem =
         [ elem ]
 
 
-drawGame : GameModel -> Html Msg
-drawGame model =
+drawGame : DrawState -> Html Msg
+drawGame drawState =
     div [ style [ ( "position", "relative" ) ] ]
         (append
-            [ img
-                [ src "assets/game_background.png"
-                , style
-                    [ ( "position", "relative" )
-                    , ( "top", "0" )
-                    , ( "left", "0" )
-                    ]
-                ]
-                []
+            [ gameBackground
             ]
             (foldr
-                (\i agg ->
-                    (img
-                        [ src
-                            (if i.isHit then
-                                "assets/test_element_hit.png"
-                             else
-                                "assets/test_element.png"
-                            )
-                        , onClick (Click i.id)
-                        , style
-                            [ ( "position", "absolute" )
-                            , ( "left", (String.append (toString i.position.x) "px") )
-                            , ( "top", (String.append (toString i.position.y) "px") )
-                            ]
-                        ]
-                        []
-                    )
-                        :: agg
-                )
+                (\i agg -> (drawInteractable i) :: agg)
                 []
-                model.interactables
+                drawState.interactables
             )
         )
+
+
+gameBackground : Html Msg
+gameBackground =
+    img
+        [ src "assets/game_background.png"
+        , style
+            [ ( "position", "relative" )
+            , ( "top", "0" )
+            , ( "left", "0" )
+            ]
+        ]
+        []
+
+
+drawInteractable : Interactable -> Html Msg
+drawInteractable i =
+    img
+        [ src
+            (if i.isHit then
+                "assets/test_element_hit.png"
+             else
+                "assets/test_element.png"
+            )
+        , onClick (Click i.id)
+        , style
+            [ ( "position", "absolute" )
+            , ( "left", (String.append (toString i.position.x) "px") )
+            , ( "top", (String.append (toString i.position.y) "px") )
+            ]
+        ]
+        []
